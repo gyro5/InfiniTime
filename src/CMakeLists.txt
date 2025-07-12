@@ -428,6 +428,7 @@ list(APPEND SOURCE_FILES
         displayapp/screens/WatchFacePineTimeStyle.cpp
         displayapp/screens/WatchFaceCasioStyleG7710.cpp
         displayapp/screens/WatchFacePrideFlag.cpp
+        displayapp/screens/WatchFaceFennec.cpp
 
         ##
 
@@ -841,7 +842,7 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
   # add_definitions(-DCLOCK_CONFIG_LOG_LEVEL=4)
   # add_definitions(-DRTC_CONFIG_LOG_ENABLED=1)
   # add_definitions(-DRTC_CONFIG_LOG_LEVEL=4)
-  
+
   # Nimble Logging
   add_definitions(-DMYNEWT_VAL_NEWT_FEATURE_LOGCFG=1)
   # add_definitions(-DMYNEWT_VAL_LOG_LEVEL=0)
