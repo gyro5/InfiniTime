@@ -68,6 +68,14 @@ namespace Pinetime {
         lv_obj_t* weatherIcon;
         lv_obj_t* temperature;
 
+        lv_obj_t* sand;
+        lv_obj_t* sky;
+        lv_obj_t* sun;
+
+        static constexpr int nCactusLines = 5;
+        lv_obj_t* cactus[nCactusLines];
+        lv_obj_t* cactusBottom;
+
         Controllers::DateTime& dateTimeController;
         Controllers::NotificationManager& notificationManager;
         Controllers::Settings& settingsController;
