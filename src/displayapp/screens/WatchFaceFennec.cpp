@@ -35,26 +35,23 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
     weatherService {weatherService},
     statusIcons(batteryController, bleController, alarmController) {
 
+  // The sky (with gradient)
+  sky = lv_obj_create(lv_scr_act(), nullptr);
+  lv_obj_set_size(sky, 240, 160);
+  lv_obj_set_style_local_radius(sky, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, 0);
+  lv_obj_set_style_local_bg_grad_dir(sky, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_GRAD_DIR_VER);
+  lv_obj_align(sky, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
+
+  // The sun/moon (positioned based on mode -> See Refresh())
+  sunMoon = lv_obj_create(lv_scr_act(), nullptr);
+  lv_obj_set_size(sunMoon, 50, 50);
+  lv_obj_set_style_local_radius(sunMoon, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_RADIUS_CIRCLE);
+
   // The sand ground
   sand = lv_obj_create(lv_scr_act(), nullptr);
   lv_obj_set_size(sand, 240, 80);
-  lv_obj_set_style_local_bg_color(sand, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_YELLOW);
   lv_obj_set_style_local_radius(sand, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, 0);
   lv_obj_align(sand, nullptr, LV_ALIGN_IN_BOTTOM_LEFT, 0, 0);
-
-  // The sky
-  sky = lv_obj_create(lv_scr_act(), nullptr);
-  lv_obj_set_size(sky, 240, 160);
-  lv_obj_set_style_local_bg_color(sky, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_CYAN);
-  lv_obj_set_style_local_radius(sky, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, 0);
-  lv_obj_align(sky, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
-
-  // The sun/moon
-  sun = lv_obj_create(lv_scr_act(), nullptr);
-  lv_obj_set_size(sun, 50, 50);
-  lv_obj_set_style_local_bg_color(sun, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_ORANGE);
-  lv_obj_set_style_local_radius(sun, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, LV_RADIUS_CIRCLE);
-  lv_obj_align(sun, nullptr, LV_ALIGN_IN_TOP_LEFT, 145, 25);
 
   // The cactus (drawn with lines)
   static constexpr lv_point_t cactusPoints[nCactusLines][2] = {
@@ -68,7 +65,6 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   for (int i = 0; i < nCactusLines; i++) {
     cactus[i] = lv_line_create(lv_scr_act(), nullptr);
     lv_line_set_points(cactus[i], cactusPoints[i], 2);
-    lv_obj_set_style_local_line_color(cactus[i], LV_LINE_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GREEN);
     lv_obj_set_style_local_line_width(cactus[i], LV_LINE_PART_MAIN, LV_STATE_DEFAULT, cactusWidths[i]);
     lv_obj_set_style_local_line_rounded(cactus[i], LV_LINE_PART_MAIN, LV_STATE_DEFAULT, true);
   }
@@ -77,37 +73,31 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   static constexpr lv_point_t cactusBottomPoints[2] = {{190, 140}, {190, 180}};
   cactusBottom = lv_line_create(lv_scr_act(), nullptr);
   lv_line_set_points(cactusBottom, cactusBottomPoints, 2);
-  lv_obj_set_style_local_line_color(cactusBottom, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GREEN);
   lv_obj_set_style_local_line_width(cactusBottom, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, 20);
   lv_obj_set_style_local_line_rounded(cactusBottom, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, false);
 
   // Time label
   label_time = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_font(label_time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
-  lv_obj_set_style_local_text_color(label_time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_obj_align(label_time, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 10, 10);
 
   // AM/PM label
   label_time_ampm = lv_label_create(lv_scr_act(), nullptr);
   lv_label_set_text_static(label_time_ampm, "");
-  lv_obj_set_style_local_text_color(label_time_ampm, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_obj_align(label_time_ampm, label_time, LV_ALIGN_OUT_RIGHT_BOTTOM, 5, 0);
 
   // Date label
   label_date = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_align(label_date, label_time, LV_ALIGN_OUT_BOTTOM_MID, -2, 6); // -2 for natural look
-  lv_obj_set_style_local_text_color(label_date, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
 
   // Temperature label
   temperature = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(temperature, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_label_set_text(temperature, "");
   lv_obj_align(temperature, label_date, LV_ALIGN_OUT_BOTTOM_MID, 14, 3);
   // 14 to account for (half) of the weather icon (size 25 + 5 gap). not 15 bc to look more center naturally
 
   // Weather icon
   weatherIcon = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(weatherIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_obj_set_style_local_text_font(weatherIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &fontawesome_weathericons);
   lv_label_set_text(weatherIcon, "");
   lv_obj_align(weatherIcon, temperature, LV_ALIGN_OUT_LEFT_MID, -5, 0);
@@ -152,6 +142,9 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   // Set a task that will periodically refresh the screen
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
 
+  // Default mode
+  mode = WatchFaceFennec::Mode::Day;
+
   // Refresh the screen the first time
   Refresh();
 }
@@ -160,6 +153,49 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
 WatchFaceFennec::~WatchFaceFennec() {
   lv_task_del(taskRefresh);
   lv_obj_clean(lv_scr_act());
+}
+
+void WatchFaceFennec::updateColor() {
+  // Colors for 3 modes {Day, Night, Changing} TODO change colors
+  static constexpr lv_color_t colors[8][3] {
+    {LV_COLOR_CYAN, LV_COLOR_BLACK, LV_COLOR_BLUE}, // Sky gradient 1
+    {LV_COLOR_BLUE, LV_COLOR_GRAY, LV_COLOR_PURPLE}, // Sky gradient 2 (bottom)
+    {LV_COLOR_YELLOW, LV_COLOR_YELLOW, LV_COLOR_YELLOW}, // Sand
+    {LV_COLOR_GREEN, LV_COLOR_GREEN, LV_COLOR_GREEN}, // Cactus
+    {LV_COLOR_ORANGE, LV_COLOR_SILVER, LV_COLOR_ORANGE}, // Sun moon
+    {LV_COLOR_BLACK, LV_COLOR_WHITE, LV_COLOR_WHITE}, // Text
+  };
+
+  // Size and y-offset for sun moon
+  static constexpr lv_coord_t sunMoonSize[3] {50, 40, 50};
+  static constexpr lv_coord_t sunMoonY[3] {25, 30, 130};
+
+  int modeIdx = static_cast<int>(mode.Get());
+
+  // Sky
+  lv_obj_set_style_local_bg_color(sky, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, colors[0][modeIdx]);
+  lv_obj_set_style_local_bg_grad_color(sky, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, colors[1][modeIdx]);
+
+  // Sand
+  lv_obj_set_style_local_bg_color(sand, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, colors[2][modeIdx]);
+
+  // Cactus
+  for (auto& cactusLine : cactus) {
+    lv_obj_set_style_local_line_color(cactusLine, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, colors[3][modeIdx]);
+  }
+  lv_obj_set_style_local_line_color(cactusBottom, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, colors[3][modeIdx]);
+
+  // Sun moon
+  lv_obj_set_style_local_bg_color(sunMoon, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, colors[4][modeIdx]);
+  lv_obj_set_size(sunMoon, sunMoonSize[modeIdx], sunMoonSize[modeIdx]);
+  lv_obj_align(sunMoon, nullptr, LV_ALIGN_IN_TOP_LEFT, 150, sunMoonY[modeIdx]);
+
+  // Labels
+  lv_obj_set_style_local_text_color(label_time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(label_time_ampm, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(label_date, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(temperature, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(weatherIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
 }
 
 // Screen refresh callback
@@ -172,12 +208,24 @@ void WatchFaceFennec::Refresh() {
     lv_label_set_text_static(notificationIcon, NotificationIcon::GetIcon(notificationState.Get()));
   }
 
-  // Update date time
+  // Update date time (and colors based on hour)
   currentDateTime = std::chrono::time_point_cast<std::chrono::minutes>(dateTimeController.CurrentDateTime());
 
   if (currentDateTime.IsUpdated()) {
     uint8_t hour = dateTimeController.Hours();
     uint8_t minute = dateTimeController.Minutes();
+
+    // Change mode based on hour
+    if (hour >= 20 || hour <= 2) { // Night: 20->2
+      mode = WatchFaceFennec::Mode::Night;
+    } else if (7 <= hour && hour <= 17) { // Day: 7->17
+      mode = WatchFaceFennec::Mode::Day;
+    } else { // Sun rise: 3->6 or Sun set: 18->19
+      mode = WatchFaceFennec::Mode::Changing;
+    }
+    if (mode.IsUpdated()) {
+      updateColor();
+    }
 
     if (settingsController.GetClockType() == Controllers::Settings::ClockType::H12) {
       // 12-Hour mode
@@ -215,7 +263,7 @@ void WatchFaceFennec::Refresh() {
       lv_obj_set_style_local_text_color(heartbeatIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
       lv_label_set_text_fmt(heartbeatValue, "%d", heartbeat.Get());
     } else {
-      lv_obj_set_style_local_text_color(heartbeatIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GREEN);
+      lv_obj_set_style_local_text_color(heartbeatIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GRAY);
       lv_label_set_text_static(heartbeatValue, "");
     }
 

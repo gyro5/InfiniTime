@@ -45,17 +45,21 @@ namespace Pinetime {
         void Refresh() override;
 
       private:
-        uint8_t displayedHour = -1;
-        uint8_t displayedMinute = -1;
+        // uint8_t displayedHour = -1;
+        // uint8_t displayedMinute = -1;
 
-        Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::minutes>> currentDateTime {};
-        Utility::DirtyValue<uint32_t> stepCount {};
-        Utility::DirtyValue<uint8_t> heartbeat {};
-        Utility::DirtyValue<bool> heartbeatRunning {};
-        Utility::DirtyValue<bool> notificationState {};
-        Utility::DirtyValue<std::optional<Pinetime::Controllers::SimpleWeatherService::CurrentWeather>> currentWeather {};
+        Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::minutes>> currentDateTime;
+        Utility::DirtyValue<uint32_t> stepCount;
+        Utility::DirtyValue<uint8_t> heartbeat;
+        Utility::DirtyValue<bool> heartbeatRunning;
+        Utility::DirtyValue<bool> notificationState;
+        Utility::DirtyValue<std::optional<Pinetime::Controllers::SimpleWeatherService::CurrentWeather>> currentWeather;
 
         Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::days>> currentDate;
+
+        enum class Mode : std::uint8_t {Day, Night, Changing};
+        Utility::DirtyValue<Mode> mode;
+        void updateColor();
 
         lv_obj_t* label_time;
         lv_obj_t* label_time_ampm;
@@ -70,7 +74,7 @@ namespace Pinetime {
 
         lv_obj_t* sand;
         lv_obj_t* sky;
-        lv_obj_t* sun;
+        lv_obj_t* sunMoon;
 
         static constexpr int nCactusLines = 5;
         lv_obj_t* cactus[nCactusLines];
