@@ -69,6 +69,7 @@
     },
     "clangd.arguments": [
         "--query-driver=${env:HOME}/Documents/Projects/pinetime/gcc-arm-none-eabi-10.3-2021.10/bin/arm-none-eabi-*",
-        "--compile-commands-dir=build"
+        "--compile-commands-dir=build",
+        "-header-insertion=never"
     ]
 }
