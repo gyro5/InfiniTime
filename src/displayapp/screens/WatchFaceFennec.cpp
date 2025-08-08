@@ -25,7 +25,8 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
                                 Controllers::Settings& settingsController,
                                 Controllers::HeartRateController& heartRateController,
                                 Controllers::MotionController& motionController,
-                                Controllers::SimpleWeatherService& weatherService)
+                                Controllers::SimpleWeatherService& weatherService,
+                                Controllers::FS& filesystem)
   : currentDateTime {{}},
     dateTimeController {dateTimeController},
     notificationManager {notificationManager},
@@ -75,6 +76,21 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   lv_line_set_points(cactusBottom, cactusBottomPoints, 2);
   lv_obj_set_style_local_line_width(cactusBottom, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, 20);
   lv_obj_set_style_local_line_rounded(cactusBottom, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, false);
+
+  // The fennec
+  lfs_file fen_file = {};
+  if (filesystem.FileOpen(&fen_file, "/images/fennec_sit.bin", LFS_O_RDONLY) < 0) {
+    // filesystem.FileClose(&f);
+    fennec = lv_label_create(lv_scr_act(), nullptr);
+    lv_label_set_text_static(fennec, "FFF");
+    lv_obj_align(fennec, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
+  }
+  else {
+    filesystem.FileClose(&fen_file);
+    fennec = lv_img_create(lv_scr_act(), nullptr);
+    lv_img_set_src(fennec, "F:/images/fennec_sit.bin");
+    lv_obj_align(fennec, nullptr, LV_ALIGN_IN_TOP_LEFT, 30, 115);
+  }
 
   // Time label
   label_time = lv_label_create(lv_scr_act(), nullptr);

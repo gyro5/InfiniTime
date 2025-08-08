@@ -19,5 +19,19 @@
       "output_format": "bin",
       "binary_format": "ARGB8565_RBSWAP",
       "target_path": "/images/"
+   },
+   "fennec_sit" : {
+      "sources": "images/fennec_sit.png",
+      "color_format": "CF_TRUE_COLOR_ALPHA",
+      "output_format": "bin",
+      "binary_format": "ARGB8565_RBSWAP",
+      "target_path": "/images/"
+   },
+   "fennec_sleep" : {
+      "sources": "images/fennec_sleep.png",
+      "color_format": "CF_TRUE_COLOR_ALPHA",
+      "output_format": "bin",
+      "binary_format": "ARGB8565_RBSWAP",
+      "target_path": "/images/"
    }
 }

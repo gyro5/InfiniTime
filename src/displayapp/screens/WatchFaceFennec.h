@@ -30,14 +30,15 @@ namespace Pinetime {
       public:
         // Constructor
         WatchFaceFennec(Controllers::DateTime& dateTimeController,
-                         const Controllers::Battery& batteryController,
-                         const Controllers::Ble& bleController,
-                         const Controllers::AlarmController& alarmController,
-                         Controllers::NotificationManager& notificationManager,
-                         Controllers::Settings& settingsController,
-                         Controllers::HeartRateController& heartRateController,
-                         Controllers::MotionController& motionController,
-                         Controllers::SimpleWeatherService& weather);
+                        const Controllers::Battery& batteryController,
+                        const Controllers::Ble& bleController,
+                        const Controllers::AlarmController& alarmController,
+                        Controllers::NotificationManager& notificationManager,
+                        Controllers::Settings& settingsController,
+                        Controllers::HeartRateController& heartRateController,
+                        Controllers::MotionController& motionController,
+                        Controllers::SimpleWeatherService& weather,
+                        Controllers::FS& filesystem);
 
         // Destructor
         ~WatchFaceFennec() override;
@@ -45,9 +46,6 @@ namespace Pinetime {
         void Refresh() override;
 
       private:
-        // uint8_t displayedHour = -1;
-        // uint8_t displayedMinute = -1;
-
         Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::minutes>> currentDateTime;
         Utility::DirtyValue<uint32_t> stepCount;
         Utility::DirtyValue<uint8_t> heartbeat;
@@ -61,6 +59,7 @@ namespace Pinetime {
         Utility::DirtyValue<Mode> mode;
         void updateColor();
 
+        // TODO re-arange these
         lv_obj_t* label_time;
         lv_obj_t* label_time_ampm;
         lv_obj_t* label_date;
@@ -75,6 +74,7 @@ namespace Pinetime {
         lv_obj_t* sand;
         lv_obj_t* sky;
         lv_obj_t* sunMoon;
+        lv_obj_t* fennec;
 
         static constexpr int nCactusLines = 5;
         lv_obj_t* cactus[nCactusLines];
@@ -106,7 +106,8 @@ namespace Pinetime {
                                             controllers.settingsController,
                                             controllers.heartRateController,
                                             controllers.motionController,
-                                            *controllers.weatherController);
+                                            *controllers.weatherController,
+                                            controllers.filesystem);
       };
 
       static bool IsAvailable(Pinetime::Controllers::FS& /*filesystem*/) {
