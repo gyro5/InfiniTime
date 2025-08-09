@@ -3,12 +3,13 @@
 #include <lvgl/src/lv_core/lv_obj.h>
 #include <chrono>
 #include <cstdint>
-#include <memory>
+// #include <memory>
 #include "displayapp/screens/Screen.h"
+#include <displayapp/Controllers.h>
 #include "components/datetime/DateTimeController.h"
 #include "components/ble/SimpleWeatherService.h"
 #include "components/ble/BleController.h"
-#include "displayapp/widgets/StatusIcons.h"
+#include "displayapp/screens/BatteryIcon.h"
 #include "utility/DirtyValue.h"
 #include "displayapp/apps/Apps.h"
 
@@ -32,7 +33,6 @@ namespace Pinetime {
         WatchFaceFennec(Controllers::DateTime& dateTimeController,
                         const Controllers::Battery& batteryController,
                         const Controllers::Ble& bleController,
-                        const Controllers::AlarmController& alarmController,
                         Controllers::NotificationManager& notificationManager,
                         Controllers::Settings& settingsController,
                         Controllers::HeartRateController& heartRateController,
@@ -47,39 +47,72 @@ namespace Pinetime {
         static bool IsAvailable(Pinetime::Controllers::FS& filesystem);
 
       private:
+        // Colors for 3 modes {Day, Night, Changing} TODO change colors
+        static constexpr lv_color_t colors[8][3] {
+          {LV_COLOR_CYAN, LV_COLOR_BLACK, LV_COLOR_BLUE}, // Sky gradient 1
+          {LV_COLOR_BLUE, LV_COLOR_GRAY, LV_COLOR_PURPLE}, // Sky gradient 2 (bottom)
+          {LV_COLOR_YELLOW, LV_COLOR_YELLOW, LV_COLOR_YELLOW}, // Sand
+          {LV_COLOR_GREEN, LV_COLOR_GREEN, LV_COLOR_GREEN}, // Cactus
+          {LV_COLOR_ORANGE, LV_COLOR_SILVER, LV_COLOR_ORANGE}, // Sun moon
+          {LV_COLOR_BLACK, LV_COLOR_WHITE, LV_COLOR_WHITE}, // Text
+        };
+
+        // Size and y-offset for sun moon
+        static constexpr lv_coord_t sunMoonSize[3] {50, 40, 50};
+        static constexpr lv_coord_t sunMoonY[3] {25, 30, 130};
+
+        // Image source and position of fennec
+        static constexpr char fennecSit[] = "F:/images/fennec_sit.bin";
+        static constexpr char fennecSleep[] = "F:/images/fennec_sleep.bin";
+        static constexpr const char* fennecSrc[3] {fennecSit, fennecSleep, fennecSit};
+        static constexpr lv_coord_t fennecPos[3][2] = {{30, 115}, {20, 125}, {30, 115}};
+
         Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::minutes>> currentDateTime;
+        Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::days>> currentDate;
+
         Utility::DirtyValue<uint32_t> stepCount;
         Utility::DirtyValue<uint8_t> heartbeat;
         Utility::DirtyValue<bool> heartbeatRunning;
-        Utility::DirtyValue<bool> notificationState;
         Utility::DirtyValue<std::optional<Pinetime::Controllers::SimpleWeatherService::CurrentWeather>> currentWeather;
 
-        Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::days>> currentDate;
+        Utility::DirtyValue<bool> notificationState;
+        Utility::DirtyValue<uint8_t> batteryPercentRemaining;
+        Utility::DirtyValue<bool> powerPresent;
+        Utility::DirtyValue<bool> bleState;
+        Utility::DirtyValue<bool> bleRadioEnabled;
 
+        // For mode-based colors and decorations
         enum class Mode : std::uint8_t {Day, Night, Changing};
         Utility::DirtyValue<Mode> mode;
         void updateByMode();
 
-        // TODO re-arange these
-        lv_obj_t* label_time;
-        lv_obj_t* label_time_ampm;
-        lv_obj_t* label_date;
-        lv_obj_t* heartbeatIcon;
-        lv_obj_t* heartbeatValue;
-        lv_obj_t* stepIcon;
-        lv_obj_t* stepValue;
-        lv_obj_t* notificationIcon;
-        lv_obj_t* weatherIcon;
-        lv_obj_t* temperature;
-
+        // Background and decorations
         lv_obj_t* sand;
         lv_obj_t* sky;
         lv_obj_t* sunMoon;
         lv_obj_t* fennec;
-
         static constexpr int nCactusLines = 5;
         lv_obj_t* cactus[nCactusLines];
         lv_obj_t* cactusBottom;
+
+        // Date time labels
+        lv_obj_t* label_time;
+        lv_obj_t* label_time_ampm;
+        lv_obj_t* label_date;
+
+        // Sensor icons
+        lv_obj_t* heartbeatIcon;
+        lv_obj_t* heartbeatValue;
+        lv_obj_t* stepIcon;
+        lv_obj_t* stepValue;
+        lv_obj_t* weatherIcon;
+        lv_obj_t* temperature;
+
+        // Top right icons
+        lv_obj_t* notificationIcon;
+        lv_obj_t* bleIcon;
+        lv_obj_t* label_battery_value;
+        BatteryIcon batteryIcon;
 
         Controllers::DateTime& dateTimeController;
         Controllers::NotificationManager& notificationManager;
@@ -87,9 +120,10 @@ namespace Pinetime {
         Controllers::HeartRateController& heartRateController;
         Controllers::MotionController& motionController;
         Controllers::SimpleWeatherService& weatherService;
+        const Controllers::Battery& batteryController;
+        const Controllers::Ble& bleController;
 
         lv_task_t* taskRefresh;
-        Widgets::StatusIcons statusIcons;
       };
     }
 
@@ -102,7 +136,6 @@ namespace Pinetime {
         return new Screens::WatchFaceFennec(controllers.dateTimeController,
                                             controllers.batteryController,
                                             controllers.bleController,
-                                            controllers.alarmController,
                                             controllers.notificationManager,
                                             controllers.settingsController,
                                             controllers.heartRateController,

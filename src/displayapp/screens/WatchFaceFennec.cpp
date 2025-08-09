@@ -8,6 +8,7 @@
 #include "displayapp/screens/WeatherSymbols.h"
 #include "components/battery/BatteryController.h"
 #include "components/ble/BleController.h"
+#include "displayapp/screens/BleIcon.h"
 #include "components/ble/NotificationManager.h"
 #include "components/heartrate/HeartRateController.h"
 #include "components/motion/MotionController.h"
@@ -20,20 +21,21 @@ using namespace Pinetime::Applications::Screens;
 WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
                                 const Controllers::Battery& batteryController,
                                 const Controllers::Ble& bleController,
-                                const Controllers::AlarmController& alarmController,
                                 Controllers::NotificationManager& notificationManager,
                                 Controllers::Settings& settingsController,
                                 Controllers::HeartRateController& heartRateController,
                                 Controllers::MotionController& motionController,
                                 Controllers::SimpleWeatherService& weatherService)
   : currentDateTime {{}},
+    batteryIcon(false),
     dateTimeController {dateTimeController},
     notificationManager {notificationManager},
     settingsController {settingsController},
     heartRateController {heartRateController},
     motionController {motionController},
     weatherService {weatherService},
-    statusIcons(batteryController, bleController, alarmController) {
+    batteryController {batteryController},
+    bleController {bleController} {
 
   // The sky (with gradient)
   sky = lv_obj_create(lv_scr_act(), nullptr);
@@ -82,7 +84,7 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   // Time label
   label_time = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_font(label_time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
-  lv_obj_align(label_time, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 10, 10);
+  lv_obj_align(label_time, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 0, 15);
 
   // AM/PM label
   label_time_ampm = lv_label_create(lv_scr_act(), nullptr);
@@ -95,16 +97,15 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
 
   // Temperature label
   temperature = lv_label_create(lv_scr_act(), nullptr);
-  lv_label_set_text(temperature, "");
+  lv_label_set_text_static(temperature, "");
   lv_obj_align(temperature, label_date, LV_ALIGN_OUT_BOTTOM_MID, 14, 3);
   // 14 to account for (half) of the weather icon (size 25 + 5 gap). not 15 bc to look more center naturally
 
   // Weather icon
   weatherIcon = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_font(weatherIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &fontawesome_weathericons);
-  lv_label_set_text(weatherIcon, "");
+  lv_label_set_text_static(weatherIcon, "");
   lv_obj_align(weatherIcon, temperature, LV_ALIGN_OUT_LEFT_MID, -5, 0);
-  // lv_obj_set_auto_realign(weatherIcon, true); // Probably not necessary because already realign in Refresh()
 
   // Heartbeat icon and label
   heartbeatIcon = lv_label_create(lv_scr_act(), nullptr);
@@ -128,19 +129,21 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   lv_label_set_text_static(stepIcon, Symbols::shoe);
   lv_obj_align(stepIcon, stepValue, LV_ALIGN_OUT_LEFT_MID, -5, 0);
 
+  // Top right icons: Notification, Battery, BLE
+  label_battery_value = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_align(label_battery_value, nullptr, LV_ALIGN_IN_TOP_RIGHT, 0, 0);
+  lv_label_set_text_static(label_battery_value, "AA");
 
+  batteryIcon.Create(lv_scr_act());
+  lv_obj_align(batteryIcon.GetObject(), label_battery_value, LV_ALIGN_OUT_LEFT_MID, -5, 0);
 
+  bleIcon = lv_label_create(lv_scr_act(), nullptr);
+  lv_label_set_text_static(bleIcon, Symbols::bluetooth);
+  lv_obj_align(bleIcon, batteryIcon.GetObject(), LV_ALIGN_OUT_LEFT_MID, -5, 0);
 
-
-
-  // Status icon widget: Battery, Charging, Alarm
-  statusIcons.Create();
-
-  // Notification icon
   notificationIcon = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(notificationIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_LIME);
   lv_label_set_text_static(notificationIcon, NotificationIcon::GetIcon(false));
-  lv_obj_align(notificationIcon, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
+  lv_obj_align(notificationIcon, bleIcon, LV_ALIGN_OUT_LEFT_MID, -5, 0);
 
   // Set a task that will periodically refresh the screen
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
@@ -159,26 +162,6 @@ WatchFaceFennec::~WatchFaceFennec() {
 }
 
 void WatchFaceFennec::updateByMode() {
-  // Colors for 3 modes {Day, Night, Changing} TODO change colors
-  static constexpr lv_color_t colors[8][3] {
-    {LV_COLOR_CYAN, LV_COLOR_BLACK, LV_COLOR_BLUE}, // Sky gradient 1
-    {LV_COLOR_BLUE, LV_COLOR_GRAY, LV_COLOR_PURPLE}, // Sky gradient 2 (bottom)
-    {LV_COLOR_YELLOW, LV_COLOR_YELLOW, LV_COLOR_YELLOW}, // Sand
-    {LV_COLOR_GREEN, LV_COLOR_GREEN, LV_COLOR_GREEN}, // Cactus
-    {LV_COLOR_ORANGE, LV_COLOR_SILVER, LV_COLOR_ORANGE}, // Sun moon
-    {LV_COLOR_BLACK, LV_COLOR_WHITE, LV_COLOR_WHITE}, // Text
-  };
-
-  // Size and y-offset for sun moon
-  static constexpr lv_coord_t sunMoonSize[3] {50, 40, 50};
-  static constexpr lv_coord_t sunMoonY[3] {25, 30, 130};
-
-  // Image source and position of fennec
-  static constexpr char fennec_sit[] = "F:/images/fennec_sit.bin";
-  static constexpr char fennec_sleep[] = "F:/images/fennec_sleep.bin";
-  static constexpr const char* fennecSrc[3] {fennec_sit, fennec_sleep, fennec_sit};
-  static constexpr lv_coord_t fennecPos[3][2] = {{30, 115}, {20, 125}, {30, 115}};
-
   int modeIdx = static_cast<int>(mode.Get());
 
   // Sky
@@ -209,12 +192,16 @@ void WatchFaceFennec::updateByMode() {
   lv_obj_set_style_local_text_color(label_date, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
   lv_obj_set_style_local_text_color(temperature, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
   lv_obj_set_style_local_text_color(weatherIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+
+  // Top right icons
+  lv_obj_set_style_local_text_color(label_battery_value, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  batteryIcon.SetColor(colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(bleIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(notificationIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
 }
 
 // Screen refresh callback
 void WatchFaceFennec::Refresh() {
-  statusIcons.Update();
-
   // Update notification status
   notificationState = notificationManager.AreNewNotificationsAvailable();
   if (notificationState.IsUpdated()) {
@@ -312,8 +299,43 @@ void WatchFaceFennec::Refresh() {
     lv_obj_realign(temperature);
     lv_obj_realign(weatherIcon);
   }
+
+  // Update top right icons
+  powerPresent = batteryController.IsPowerPresent();
+  if (powerPresent.IsUpdated()) {
+    if (powerPresent.Get()) { // Green if charging
+      batteryIcon.SetColor(LV_COLOR_GREEN);
+    }
+    else { // Else use text color
+      batteryIcon.SetColor(colors[5][static_cast<int>(mode.Get())]);
+    }
+  }
+
+  batteryPercentRemaining = batteryController.PercentRemaining();
+  if (batteryPercentRemaining.IsUpdated()) {
+    auto batteryPercent = batteryPercentRemaining.Get();
+    batteryIcon.SetBatteryPercentage(batteryPercent);
+    lv_label_set_text_fmt(label_battery_value, "%d%%", batteryPercent);
+  }
+
+  bleState = bleController.IsConnected();
+  bleRadioEnabled = bleController.IsRadioEnabled();
+  if (bleState.IsUpdated() || bleRadioEnabled.IsUpdated()) {
+    lv_label_set_text_static(bleIcon, BleIcon::GetIcon(bleState.Get()));
+  }
+
+  notificationState = notificationManager.AreNewNotificationsAvailable();
+  if (notificationState.IsUpdated()) {
+    lv_label_set_text_static(notificationIcon, NotificationIcon::GetIcon(notificationState.Get()));
+  }
+
+  lv_obj_realign(label_battery_value);
+  lv_obj_realign(batteryIcon.GetObject());
+  lv_obj_realign(bleIcon);
+  lv_obj_realign(notificationIcon);
 }
 
+// Available if the 2 fennec images are available
 bool WatchFaceFennec::IsAvailable(Pinetime::Controllers::FS& filesystem) {
   lfs_file file = {};
 
