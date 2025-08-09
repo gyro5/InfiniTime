@@ -25,8 +25,7 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
                                 Controllers::Settings& settingsController,
                                 Controllers::HeartRateController& heartRateController,
                                 Controllers::MotionController& motionController,
-                                Controllers::SimpleWeatherService& weatherService,
-                                Controllers::FS& filesystem)
+                                Controllers::SimpleWeatherService& weatherService)
   : currentDateTime {{}},
     dateTimeController {dateTimeController},
     notificationManager {notificationManager},
@@ -78,19 +77,7 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   lv_obj_set_style_local_line_rounded(cactusBottom, LV_LINE_PART_MAIN, LV_STATE_DEFAULT, false);
 
   // The fennec
-  lfs_file fen_file = {};
-  if (filesystem.FileOpen(&fen_file, "/images/fennec_sit.bin", LFS_O_RDONLY) < 0) {
-    // filesystem.FileClose(&f);
-    fennec = lv_label_create(lv_scr_act(), nullptr);
-    lv_label_set_text_static(fennec, "FFF");
-    lv_obj_align(fennec, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
-  }
-  else {
-    filesystem.FileClose(&fen_file);
-    fennec = lv_img_create(lv_scr_act(), nullptr);
-    lv_img_set_src(fennec, "F:/images/fennec_sit.bin");
-    lv_obj_align(fennec, nullptr, LV_ALIGN_IN_TOP_LEFT, 30, 115);
-  }
+  fennec = lv_img_create(lv_scr_act(), nullptr);
 
   // Time label
   label_time = lv_label_create(lv_scr_act(), nullptr);
@@ -171,7 +158,7 @@ WatchFaceFennec::~WatchFaceFennec() {
   lv_obj_clean(lv_scr_act());
 }
 
-void WatchFaceFennec::updateColor() {
+void WatchFaceFennec::updateByMode() {
   // Colors for 3 modes {Day, Night, Changing} TODO change colors
   static constexpr lv_color_t colors[8][3] {
     {LV_COLOR_CYAN, LV_COLOR_BLACK, LV_COLOR_BLUE}, // Sky gradient 1
@@ -185,6 +172,12 @@ void WatchFaceFennec::updateColor() {
   // Size and y-offset for sun moon
   static constexpr lv_coord_t sunMoonSize[3] {50, 40, 50};
   static constexpr lv_coord_t sunMoonY[3] {25, 30, 130};
+
+  // Image source and position of fennec
+  static constexpr char fennec_sit[] = "F:/images/fennec_sit.bin";
+  static constexpr char fennec_sleep[] = "F:/images/fennec_sleep.bin";
+  static constexpr const char* fennecSrc[3] {fennec_sit, fennec_sleep, fennec_sit};
+  static constexpr lv_coord_t fennecPos[3][2] = {{30, 115}, {20, 125}, {30, 115}};
 
   int modeIdx = static_cast<int>(mode.Get());
 
@@ -205,6 +198,10 @@ void WatchFaceFennec::updateColor() {
   lv_obj_set_style_local_bg_color(sunMoon, LV_OBJ_PART_MAIN, LV_STATE_DEFAULT, colors[4][modeIdx]);
   lv_obj_set_size(sunMoon, sunMoonSize[modeIdx], sunMoonSize[modeIdx]);
   lv_obj_align(sunMoon, nullptr, LV_ALIGN_IN_TOP_LEFT, 150, sunMoonY[modeIdx]);
+
+  // Fennec
+  lv_img_set_src(fennec, fennecSrc[modeIdx]);
+  lv_obj_align(fennec, nullptr, LV_ALIGN_IN_TOP_LEFT, fennecPos[modeIdx][0], fennecPos[modeIdx][1]);
 
   // Labels
   lv_obj_set_style_local_text_color(label_time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
@@ -232,15 +229,15 @@ void WatchFaceFennec::Refresh() {
     uint8_t minute = dateTimeController.Minutes();
 
     // Change mode based on hour
-    if (hour >= 20 || hour <= 2) { // Night: 20->2
+    if (hour >= 20 || hour <= 4) { // Night: 20->4
       mode = WatchFaceFennec::Mode::Night;
     } else if (7 <= hour && hour <= 17) { // Day: 7->17
       mode = WatchFaceFennec::Mode::Day;
-    } else { // Sun rise: 3->6 or Sun set: 18->19
+    } else { // Sun rise: 5->6 or Sun set: 18->19
       mode = WatchFaceFennec::Mode::Changing;
     }
     if (mode.IsUpdated()) {
-      updateColor();
+      updateByMode();
     }
 
     if (settingsController.GetClockType() == Controllers::Settings::ClockType::H12) {
@@ -315,4 +312,20 @@ void WatchFaceFennec::Refresh() {
     lv_obj_realign(temperature);
     lv_obj_realign(weatherIcon);
   }
+}
+
+bool WatchFaceFennec::IsAvailable(Pinetime::Controllers::FS& filesystem) {
+  lfs_file file = {};
+
+  if (filesystem.FileOpen(&file, "/images/fennec_sit.bin", LFS_O_RDONLY) < 0) {
+    return false;
+  }
+
+  filesystem.FileClose(&file);
+  if (filesystem.FileOpen(&file, "/images/fennec_sleep.bin", LFS_O_RDONLY) < 0) {
+    return false;
+  }
+
+  filesystem.FileClose(&file);
+  return true;
 }

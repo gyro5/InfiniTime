@@ -37,13 +37,14 @@ namespace Pinetime {
                         Controllers::Settings& settingsController,
                         Controllers::HeartRateController& heartRateController,
                         Controllers::MotionController& motionController,
-                        Controllers::SimpleWeatherService& weather,
-                        Controllers::FS& filesystem);
+                        Controllers::SimpleWeatherService& weather);
 
         // Destructor
         ~WatchFaceFennec() override;
 
         void Refresh() override;
+
+        static bool IsAvailable(Pinetime::Controllers::FS& filesystem);
 
       private:
         Utility::DirtyValue<std::chrono::time_point<std::chrono::system_clock, std::chrono::minutes>> currentDateTime;
@@ -57,7 +58,7 @@ namespace Pinetime {
 
         enum class Mode : std::uint8_t {Day, Night, Changing};
         Utility::DirtyValue<Mode> mode;
-        void updateColor();
+        void updateByMode();
 
         // TODO re-arange these
         lv_obj_t* label_time;
@@ -106,12 +107,11 @@ namespace Pinetime {
                                             controllers.settingsController,
                                             controllers.heartRateController,
                                             controllers.motionController,
-                                            *controllers.weatherController,
-                                            controllers.filesystem);
+                                            *controllers.weatherController);
       };
 
-      static bool IsAvailable(Pinetime::Controllers::FS& /*filesystem*/) {
-        return true; // Always available
+      static bool IsAvailable(Pinetime::Controllers::FS& filesystem) {
+        return Screens::WatchFaceFennec::IsAvailable(filesystem);
       }
     };
   }
