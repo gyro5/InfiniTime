@@ -98,7 +98,7 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   // Temperature label
   temperature = lv_label_create(lv_scr_act(), nullptr);
   lv_label_set_text_static(temperature, "");
-  lv_obj_align(temperature, label_time, LV_ALIGN_OUT_BOTTOM_MID, 14, 10);
+  lv_obj_align(temperature, label_time, LV_ALIGN_OUT_BOTTOM_MID, 14, 12);
   // 14 to account for (half) of the weather icon (size 25 + 5 gap). not 15 bc to look more center naturally
 
   // Weather icon
@@ -247,12 +247,37 @@ void WatchFaceFennec::Refresh() {
     currentDate = std::chrono::time_point_cast<std::chrono::days>(currentDateTime.Get());
     if (currentDate.IsUpdated()) {
       lv_label_set_text_fmt(label_date,
-                            "%s %d/%d",
+                            "%s %02d/%02d",
                             Pinetime::Controllers::DateTime::DayOfWeekShortToStringLow(dateTimeController.DayOfWeek()),
                             dateTimeController.Day(),
                             dateTimeController.Month());
       lv_obj_realign(label_date);
     }
+  }
+
+  // Update weather
+  currentWeather = weatherService.Current();
+  if (currentWeather.IsUpdated()) {
+    auto optCurrentWeather = currentWeather.Get();
+    if (optCurrentWeather) {
+      int16_t temp = optCurrentWeather->temperature.Celsius();
+      char tempUnit = 'C';
+      if (settingsController.GetWeatherFormat() == Controllers::Settings::WeatherFormat::Imperial) {
+        temp = optCurrentWeather->temperature.Fahrenheit();
+        tempUnit = 'F';
+      }
+      lv_label_set_text_fmt(temperature, "%d°%c", temp, tempUnit);
+      lv_label_set_text(weatherIcon, Symbols::GetSymbol(optCurrentWeather->iconId));
+      lv_obj_align(label_time, nullptr, LV_ALIGN_IN_TOP_MID, 0, 35);
+    } else {
+      lv_label_set_text_static(temperature, "");
+      lv_label_set_text(weatherIcon, "");
+
+      // No weather -> Move time a little bit down to center
+      lv_obj_align(label_time, nullptr, LV_ALIGN_IN_TOP_MID, 0, 50);
+    }
+    lv_obj_realign(temperature);
+    lv_obj_realign(weatherIcon);
   }
 
   // Update heartbeat
@@ -279,32 +304,11 @@ void WatchFaceFennec::Refresh() {
     lv_obj_realign(stepIcon);
   }
 
-  // Update weather
-  currentWeather = weatherService.Current();
-  if (currentWeather.IsUpdated()) {
-    auto optCurrentWeather = currentWeather.Get();
-    if (optCurrentWeather) {
-      int16_t temp = optCurrentWeather->temperature.Celsius();
-      char tempUnit = 'C';
-      if (settingsController.GetWeatherFormat() == Controllers::Settings::WeatherFormat::Imperial) {
-        temp = optCurrentWeather->temperature.Fahrenheit();
-        tempUnit = 'F';
-      }
-      lv_label_set_text_fmt(temperature, "%d°%c", temp, tempUnit);
-      lv_label_set_text(weatherIcon, Symbols::GetSymbol(optCurrentWeather->iconId));
-    } else {
-      lv_label_set_text_static(temperature, "");
-      lv_label_set_text(weatherIcon, "");
-    }
-    lv_obj_realign(temperature);
-    lv_obj_realign(weatherIcon);
-  }
-
   // Update top right icons
   powerPresent = batteryController.IsPowerPresent();
   if (powerPresent.IsUpdated()) {
-    if (powerPresent.Get()) { // Green if charging
-      batteryIcon.SetColor(LV_COLOR_GREEN);
+    if (powerPresent.Get()) { // Charging
+      batteryIcon.SetColor(colors[6][static_cast<int>(mode.Get())]);
     }
     else { // Else use text color
       batteryIcon.SetColor(colors[5][static_cast<int>(mode.Get())]);

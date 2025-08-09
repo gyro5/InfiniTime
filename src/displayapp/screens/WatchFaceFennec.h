@@ -49,12 +49,13 @@ namespace Pinetime {
       private:
         // Colors for 3 modes {Day, Night, Changing} TODO change colors
         static constexpr lv_color_t colors[8][3] {
-          {LV_COLOR_CYAN, LV_COLOR_BLACK, LV_COLOR_BLUE}, // Sky gradient 1
-          {LV_COLOR_BLUE, LV_COLOR_GRAY, LV_COLOR_PURPLE}, // Sky gradient 2 (bottom)
-          {LV_COLOR_YELLOW, LV_COLOR_YELLOW, LV_COLOR_YELLOW}, // Sand
-          {LV_COLOR_GREEN, LV_COLOR_GREEN, LV_COLOR_GREEN}, // Cactus
-          {LV_COLOR_ORANGE, LV_COLOR_SILVER, LV_COLOR_ORANGE}, // Sun moon
-          {LV_COLOR_BLACK, LV_COLOR_WHITE, LV_COLOR_WHITE}, // Text
+          {LV_COLOR_CYAN, LV_COLOR_BLACK, LV_COLOR_BLUE},         // Sky gradient 1
+          {LV_COLOR_BLUE, LV_COLOR_GRAY, LV_COLOR_PURPLE},        // Sky gradient 2 (bottom)
+          {LV_COLOR_YELLOW, LV_COLOR_YELLOW, LV_COLOR_YELLOW},    // Sand
+          {LV_COLOR_GREEN, LV_COLOR_GREEN, LV_COLOR_GREEN},       // Cactus
+          {LV_COLOR_ORANGE, LV_COLOR_SILVER, LV_COLOR_ORANGE},    // Sun moon
+          {LV_COLOR_BLACK, LV_COLOR_WHITE, LV_COLOR_WHITE},       // Text
+          {LV_COLOR_GREEN, LV_COLOR_LIME, LV_COLOR_GREEN},          // Charging battery
         };
 
         // Size and y-offset for sun moon
