@@ -47,15 +47,15 @@ namespace Pinetime {
         static bool IsAvailable(Pinetime::Controllers::FS& filesystem);
 
       private:
-        // Colors for 3 modes {Day, Night, Changing} TODO change colors
+        // Colors for 3 modes {Day, Night, Changing}
         static constexpr lv_color_t colors[8][3] {
-          {LV_COLOR_CYAN, LV_COLOR_BLACK, LV_COLOR_BLUE},         // Sky gradient 1
-          {LV_COLOR_BLUE, LV_COLOR_GRAY, LV_COLOR_PURPLE},        // Sky gradient 2 (bottom)
-          {LV_COLOR_YELLOW, LV_COLOR_YELLOW, LV_COLOR_YELLOW},    // Sand
-          {LV_COLOR_GREEN, LV_COLOR_GREEN, LV_COLOR_GREEN},       // Cactus
-          {LV_COLOR_ORANGE, LV_COLOR_SILVER, LV_COLOR_ORANGE},    // Sun moon
-          {LV_COLOR_BLACK, LV_COLOR_WHITE, LV_COLOR_WHITE},       // Text
-          {LV_COLOR_GREEN, LV_COLOR_LIME, LV_COLOR_GREEN},          // Charging battery
+          {LV_COLOR_MAKE(0x8a, 0xd4, 0xe1), LV_COLOR_MAKE(0x0A, 0x1D, 0x47), LV_COLOR_MAKE(0x53, 0x38, 0x9F)}, // Sky gradient 1
+          {LV_COLOR_MAKE(0xf8, 0xfd, 0xfd), LV_COLOR_MAKE(0x16, 0x5A, 0x91), LV_COLOR_MAKE(0xFF, 0x96, 0x3B)}, // Sky gradient 2 (bottom)
+          {LV_COLOR_MAKE(0xfe, 0xea, 0x86), LV_COLOR_MAKE(0xb0, 0x9d, 0x90), LV_COLOR_MAKE(0xb4, 0x4d, 0x13)}, // Sand
+          {LV_COLOR_MAKE(0x56, 0x7c, 0x17), LV_COLOR_MAKE(0x4d, 0x56, 0x44), LV_COLOR_MAKE(0x3e, 0x59, 0x10)}, // Cactus
+          {LV_COLOR_MAKE(0xff, 0xfc, 0x9d), LV_COLOR_MAKE(0xad, 0xb2, 0xbf), LV_COLOR_MAKE(0xf8, 0xe2, 0x38)}, // Sun moon
+          {LV_COLOR_MAKE(0x05, 0x0b, 0x21), LV_COLOR_MAKE(0xea, 0xea, 0xea), LV_COLOR_MAKE(0xea, 0xea, 0xea)}, // Text
+          {LV_COLOR_MAKE(0x02, 0x76, 0x5d), LV_COLOR_MAKE(0x04, 0xef, 0xbc), LV_COLOR_MAKE(0x04, 0xef, 0xbc)}, // Charging battery
         };
 
         // Size and y-offset for sun moon

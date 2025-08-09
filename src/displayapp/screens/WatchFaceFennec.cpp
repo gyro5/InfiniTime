@@ -110,22 +110,18 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   // Heartbeat icon and label
   heartbeatIcon = lv_label_create(lv_scr_act(), nullptr);
   lv_label_set_text_static(heartbeatIcon, Symbols::heartBeat);
-  lv_obj_set_style_local_text_color(heartbeatIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_obj_align(heartbeatIcon, lv_scr_act(), LV_ALIGN_IN_BOTTOM_LEFT, 0, 0);
 
   heartbeatValue = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(heartbeatValue, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_label_set_text_static(heartbeatValue, "");
   lv_obj_align(heartbeatValue, heartbeatIcon, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 
   // Step icon and label
   stepValue = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(stepValue, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_label_set_text_static(stepValue, "0");
   lv_obj_align(stepValue, lv_scr_act(), LV_ALIGN_IN_BOTTOM_RIGHT, 0, 0);
 
   stepIcon = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_set_style_local_text_color(stepIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
   lv_label_set_text_static(stepIcon, Symbols::shoe);
   lv_obj_align(stepIcon, stepValue, LV_ALIGN_OUT_LEFT_MID, -5, 0);
 
@@ -192,6 +188,9 @@ void WatchFaceFennec::updateByMode() {
   lv_obj_set_style_local_text_color(label_date, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
   lv_obj_set_style_local_text_color(temperature, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
   lv_obj_set_style_local_text_color(weatherIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(stepIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(stepValue, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
+  lv_obj_set_style_local_text_color(heartbeatValue, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
 
   // Top right icons
   lv_obj_set_style_local_text_color(label_battery_value, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
@@ -280,15 +279,18 @@ void WatchFaceFennec::Refresh() {
     lv_obj_realign(weatherIcon);
   }
 
+  // Must do this AFTER updateByMode() is called
+  int modeIdx = static_cast<int>(mode.Get());
+
   // Update heartbeat
   heartbeat = heartRateController.HeartRate();
   heartbeatRunning = heartRateController.State() != Controllers::HeartRateController::States::Stopped;
   if (heartbeat.IsUpdated() || heartbeatRunning.IsUpdated()) {
     if (heartbeatRunning.Get()) {
-      lv_obj_set_style_local_text_color(heartbeatIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_BLACK);
+      lv_obj_set_style_local_text_color(heartbeatIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, colors[5][modeIdx]);
       lv_label_set_text_fmt(heartbeatValue, "%d", heartbeat.Get());
     } else {
-      lv_obj_set_style_local_text_color(heartbeatIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_GRAY);
+      lv_obj_set_style_local_text_color(heartbeatIcon, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, LV_COLOR_MAKE(0x7f, 0x7f, 0x7f));
       lv_label_set_text_static(heartbeatValue, "");
     }
 
@@ -308,10 +310,10 @@ void WatchFaceFennec::Refresh() {
   powerPresent = batteryController.IsPowerPresent();
   if (powerPresent.IsUpdated()) {
     if (powerPresent.Get()) { // Charging
-      batteryIcon.SetColor(colors[6][static_cast<int>(mode.Get())]);
+      batteryIcon.SetColor(colors[6][modeIdx]);
     }
-    else { // Else use text color
-      batteryIcon.SetColor(colors[5][static_cast<int>(mode.Get())]);
+    else { // Else use default text color
+      batteryIcon.SetColor(colors[5][modeIdx]);
     }
   }
 
