@@ -81,24 +81,24 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   // The fennec
   fennec = lv_img_create(lv_scr_act(), nullptr);
 
+  // Date label
+  label_date = lv_label_create(lv_scr_act(), nullptr);
+  lv_obj_align(label_date, nullptr, LV_ALIGN_IN_TOP_LEFT, 0, 0);
+
   // Time label
   label_time = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_set_style_local_text_font(label_time, LV_LABEL_PART_MAIN, LV_STATE_DEFAULT, &jetbrains_mono_42);
-  lv_obj_align(label_time, lv_scr_act(), LV_ALIGN_IN_TOP_LEFT, 0, 15);
+  lv_obj_align(label_time, nullptr, LV_ALIGN_IN_TOP_MID, 0, 35);
 
   // AM/PM label
   label_time_ampm = lv_label_create(lv_scr_act(), nullptr);
   lv_label_set_text_static(label_time_ampm, "");
   lv_obj_align(label_time_ampm, label_time, LV_ALIGN_OUT_RIGHT_BOTTOM, 5, 0);
 
-  // Date label
-  label_date = lv_label_create(lv_scr_act(), nullptr);
-  lv_obj_align(label_date, label_time, LV_ALIGN_OUT_BOTTOM_MID, -2, 6); // -2 for natural look
-
   // Temperature label
   temperature = lv_label_create(lv_scr_act(), nullptr);
   lv_label_set_text_static(temperature, "");
-  lv_obj_align(temperature, label_date, LV_ALIGN_OUT_BOTTOM_MID, 14, 3);
+  lv_obj_align(temperature, label_time, LV_ALIGN_OUT_BOTTOM_MID, 14, 10);
   // 14 to account for (half) of the weather icon (size 25 + 5 gap). not 15 bc to look more center naturally
 
   // Weather icon
@@ -132,7 +132,7 @@ WatchFaceFennec::WatchFaceFennec(Controllers::DateTime& dateTimeController,
   // Top right icons: Notification, Battery, BLE
   label_battery_value = lv_label_create(lv_scr_act(), nullptr);
   lv_obj_align(label_battery_value, nullptr, LV_ALIGN_IN_TOP_RIGHT, 0, 0);
-  lv_label_set_text_static(label_battery_value, "AA");
+  lv_label_set_text_static(label_battery_value, "");
 
   batteryIcon.Create(lv_scr_act());
   lv_obj_align(batteryIcon.GetObject(), label_battery_value, LV_ALIGN_OUT_LEFT_MID, -5, 0);
